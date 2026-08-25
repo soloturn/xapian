@@ -124,6 +124,14 @@ $(stamp): except.i doccomments.i fixup-swig-py2-wrapper
 	    -python -threads -shadow -O \
 	    -o xapian_wrap.cc '$(srcdir)/'python.i
 	$(PERL) $(srcdir)/fixup-swig-py2-wrapper xapian.py > xapian__init__.py
+## Fix swapped mutex calls in SWIG-generated code.
+##
+## Python 3.15 detects this and errors out.  Older versions don't complain
+## but the director locking probably doesn't work as intended.
+##
+## Broken by SWIG 4.2.0, which we started using in Xapian 1.4.25.  Fixed in
+## SWIG 4.4.0.
+	$(PERL) -i -e 'undef$$/;$$_=<>;s/^(\s+~Mutex\(\) \{\n\s+PyThread_)release(_lock\()/$$1free$$2/m or die "Failed to fix up ~Mutex"; s/^(\s+void Unlock\(\) \{\n\s+PyThread_)free(_lock\()/$$1release$$2/m or die "Failed to fix up Unlock";print' xapian_wrap.cc
 	rm xapian.py
 	$(multitarget_end)
 
