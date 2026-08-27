@@ -1552,15 +1552,12 @@ static void generate_among_pool(struct generator * g, struct among * x) {
     while (x) {
         struct amongvec * v = x->b;
         int i;
-        char * done = check_malloc(x->literalstring_count);
-        memset(done, 0, x->literalstring_count);
-
         g->I[0] = x->number;
 
         for (i = 0; i < x->literalstring_count; i++, v++)
         {
             int j;
-            if (v->size == 0 || done[i]) continue;
+            if (v->size == 0) continue;
             g->I[1] = i;
             /* Eliminate entries which are just substrings of other entries */
             for (j = 0; j < x->literalstring_count; j++) {
@@ -1595,7 +1592,6 @@ static void generate_among_pool(struct generator * g, struct among * x) {
 done: ;
         }
 
-        check_free(done);
         x = x->next;
     }
     if (pool_size != 0) {
