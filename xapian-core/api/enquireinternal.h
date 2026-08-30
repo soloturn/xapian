@@ -31,6 +31,7 @@
 #include "xapian/mset.h" // Only needed to forward declare MSet::Internal.
 #include "xapian/query.h"
 
+#include <atomic>
 #include <memory>
 #include <string>
 #include <vector>
@@ -79,6 +80,9 @@ class Enquire::Internal : public Xapian::Internal::intrusive_base {
 
     double time_limit = 0.0;
 
+    /** Set by cancel(), checked in the match loop. See Enquire::cancel(). */
+    mutable std::atomic<bool> cancel_requested{false};
+
     enum { EXPAND_PROB, EXPAND_BO1 } eweight = EXPAND_PROB;
 
     double expand_k = 1.0;
@@ -92,6 +96,10 @@ class Enquire::Internal : public Xapian::Internal::intrusive_base {
                   doccount checkatleast,
                   const RSet* rset,
                   const MatchDecider* mdecider) const;
+
+    void cancel() const {
+        cancel_requested.store(true, std::memory_order_relaxed);
+    }
 
     TermIterator get_matching_terms_begin(docid did) const;
 

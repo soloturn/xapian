@@ -357,6 +357,15 @@ class XAPIAN_VISIBILITY_DEFAULT Enquire {
      */
     void set_time_limit(double time_limit);
 
+    /** Cancel a currently running match.
+     *
+     *  Call from another thread while get_mset() is running (on this
+     *  Enquire, or a copy sharing its state) to make it throw
+     *  Xapian::MatchCancelledError. Checked once per candidate document, not
+     *  instantaneous. Resets per get_mset() call. Local databases only.
+     */
+    void cancel() const;
+
     /** Run the query.
      *
      *  Run the query using the settings in this Enquire object and those

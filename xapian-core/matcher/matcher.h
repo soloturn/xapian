@@ -32,6 +32,7 @@
 
 #include "xapian/database.h"
 
+#include <atomic>
 #include <memory>
 #include <vector>
 
@@ -107,6 +108,7 @@ class Matcher {
                                 Xapian::Enquire::Internal::sort_setting sort_by,
                                 bool sort_val_reverse,
                                 double time_limit,
+                                const std::atomic<bool>* cancelled,
                                 const std::vector<opt_ptr_spy>& matchspies);
 
     /// Perform action on remotes as they become ready using poll() or select().
@@ -188,6 +190,10 @@ class Matcher {
      *  @param sort_val_reverse Reverse direction keys sort in?
      *  @param time_limit       time in seconds after which to disable
      *                          check_at_least (0.0 means don't).
+     *  @param cancelled        checked between candidate documents during
+     *                          the local match; if it's set, throws
+     *                          Xapian::MatchCancelledError (NULL means no
+     *                          cancellation support). See Enquire::cancel().
      *  @param matchspies       MatchSpy objects to use
      */
     Xapian::MSet get_mset(Xapian::doccount first,
@@ -206,6 +212,7 @@ class Matcher {
                           Xapian::Enquire::Internal::sort_setting sort_by,
                           bool sort_val_reverse,
                           double time_limit,
+                          const std::atomic<bool>* cancelled,
                           const std::vector<opt_ptr_spy>& matchspies);
 };
 

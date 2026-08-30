@@ -651,13 +651,15 @@ RemoteServer::msg_query(string_view message_in)
     unique_ptr<Xapian::Weight::Internal> total_stats(new Xapian::Weight::Internal);
     unserialise_stats(p, p_end, *total_stats);
 
+    // No client-side cancellation protocol yet, so nullptr here - see
+    // Enquire::cancel()'s "local databases only" limitation.
     Xapian::MSet mset = matcher.get_mset(first, maxitems, check_at_least,
                                          *total_stats, *wt, 0, sorter.get(),
                                          collapse_key, collapse_max,
                                          percent_threshold, weight_threshold,
                                          order,
                                          sort_key, sort_by, sort_value_forward,
-                                         time_limit, matchspies);
+                                         time_limit, nullptr, matchspies);
     // FIXME: The local side already has these stats, except for the maxpart
     // information.
     mset.internal->set_stats(total_stats.release());

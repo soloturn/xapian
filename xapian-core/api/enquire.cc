@@ -196,6 +196,12 @@ Enquire::set_time_limit(double time_limit)
     internal->time_limit = time_limit;
 }
 
+void
+Enquire::cancel() const
+{
+    internal->cancel();
+}
+
 MSet
 Enquire::get_mset(doccount first,
                   doccount maxitems,
@@ -266,6 +272,10 @@ Enquire::Internal::get_mset(doccount first,
         return mset;
     }
 
+    // Each get_mset() call starts fresh - a cancel() from a previous call
+    // (or one requested before this call even started) shouldn't apply here.
+    cancel_requested.store(false, std::memory_order_relaxed);
+
     if (percent_threshold && (sort_by == VAL || sort_by == VAL_REL)) {
         throw Xapian::UnimplementedError("Use of a percentage cutoff while "
                                          "sorting primary by value isn't "
@@ -325,6 +335,7 @@ Enquire::Internal::get_mset(doccount first,
                                sort_by,
                                sort_val_reverse,
                                time_limit,
+                               &cancel_requested,
                                matchspies);
 
     if (first_orig != first) {

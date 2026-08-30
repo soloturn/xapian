@@ -354,6 +354,7 @@ Matcher::get_local_mset(Xapian::doccount first,
                         Xapian::Enquire::Internal::sort_setting sort_by,
                         bool sort_val_reverse,
                         double time_limit,
+                        const std::atomic<bool>* cancelled,
                         const vector<opt_ptr_spy>& matchspies)
 {
     Assert(!locals.empty());
@@ -507,6 +508,9 @@ Matcher::get_local_mset(Xapian::doccount first,
     proto_mset.set_new_min_weight(weight_threshold);
 
     while (true) {
+        if (cancelled && cancelled->load(std::memory_order_relaxed)) {
+            throw Xapian::MatchCancelledError("Match cancelled");
+        }
         double min_weight = proto_mset.get_min_weight();
         if (!pltree.next(min_weight)) {
             break;
@@ -589,6 +593,7 @@ Matcher::get_mset(Xapian::doccount first,
                   Xapian::Enquire::Internal::sort_setting sort_by,
                   bool sort_val_reverse,
                   double time_limit,
+                  const std::atomic<bool>* cancelled,
                   const vector<opt_intrusive_ptr<Xapian::MatchSpy>>& matchspies)
 {
     AssertRel(check_at_least, >=, first + maxitems);
@@ -662,7 +667,8 @@ Matcher::get_mset(Xapian::doccount first,
                                     percent_threshold,
                                     local_percent_threshold_factor,
                                     weight_threshold, order, sort_key, sort_by,
-                                    sort_val_reverse, time_limit, matchspies);
+                                    sort_val_reverse, time_limit, cancelled,
+                                    matchspies);
     }
 
 #ifdef XAPIAN_HAS_REMOTE_BACKEND

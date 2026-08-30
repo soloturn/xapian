@@ -175,6 +175,15 @@ errorclass(21, 'DatabaseClosedError', 'DatabaseError',
            'Indicates an attempt to access a closed database.',
            '');
 
+errorclass(22, 'MatchCancelledError', 'RuntimeError',
+           'Indicates a match was cancelled before it completed.',
+           <<'DOC');
+Thrown from Xapian::Enquire::get_mset() (or similar) if
+Xapian::Enquire::cancel() was called - on the same Xapian::Enquire object, or
+a copy of it sharing the same underlying state - while the match was still
+running.
+DOC
+
 sub for_each_nothrow {
     my $func = shift @_;
     foreach my $header ('include/xapian.h', <include/xapian/*.h>) {

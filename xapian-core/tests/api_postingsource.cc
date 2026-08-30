@@ -623,6 +623,60 @@ make_matchtimelimit1_db(Xapian::WritableDatabase &db, const string &)
 }
 #endif
 
+// Used by matchcancel1 - calls Enquire::cancel() on itself once next() has
+// run a few times, so the match gets cancelled partway through. Calling
+// cancel() from a PostingSource callback isn't the API's intended use (it's
+// meant for another thread), but it's the same flag/check the matcher uses
+// either way, and it keeps the test deterministic and free of any actual
+// threading, which isn't portable enough for this test suite (no pthread
+// linkage set up for it, and some mingw configurations build without
+// std::thread support at all).
+class CancellingPostingSource
+    : public Xapian::DecreasingValueWeightPostingSource {
+    Xapian::Enquire& enquire;
+
+    int calls_before_cancel;
+
+  public:
+    CancellingPostingSource(Xapian::Enquire& enquire_, int calls_before_cancel_)
+        : Xapian::DecreasingValueWeightPostingSource(0),
+          enquire(enquire_), calls_before_cancel(calls_before_cancel_) { }
+
+    CancellingPostingSource* clone() const override {
+        return new CancellingPostingSource(enquire, calls_before_cancel);
+    }
+
+    void next(double min_wt) override {
+        if (--calls_before_cancel == 0) {
+            enquire.cancel();
+        }
+        Xapian::DecreasingValueWeightPostingSource::next(min_wt);
+    }
+};
+
+static void
+make_matchcancel1_db(Xapian::WritableDatabase& db, const string&)
+{
+    for (int wt = 20; wt > 0; --wt) {
+        Xapian::Document doc;
+        doc.add_value(0, Xapian::sortable_serialise(double(wt)));
+        db.add_document(doc);
+    }
+}
+
+// Test that Enquire::cancel() stops a running local match.
+DEFINE_TESTCASE(matchcancel1, backend && !remote)
+{
+    Xapian::Database db = get_database("matchcancel1", make_matchcancel1_db);
+
+    Xapian::Enquire enquire(db);
+    CancellingPostingSource src(enquire, 3);
+    src.reset(db, 0);
+    enquire.set_query(Xapian::Query(&src));
+
+    TEST_EXCEPTION(Xapian::MatchCancelledError, enquire.get_mset(0, 1, 20));
+}
+
 // FIXME: This doesn't run for remote databases (we'd need to register
 // SlowDecreasingValueWeightPostingSource on the remote).
 DEFINE_TESTCASE(matchtimelimit1, backend && !remote)
